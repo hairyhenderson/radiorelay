@@ -128,10 +128,12 @@ $ sudo sed -i "s/raspberrypi/$HOSTNAME/" /etc/hosts
 
 ##### Package installs
 
-A bunch of packages are necessary/useful to bootstrap things:
+A bunch of packages/keys are necessary/useful to bootstrap things:
 
 ```console
 $ sudo apt-get update && sudo apt-get install avahi-daemon docker-ce git
+...
+$ curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | sudo apt-key add -
 ...
 ```
 
