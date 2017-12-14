@@ -1,0 +1,37 @@
+version: '2.3'
+
+x-common: &common
+  image: hairyhenderson/trx:latest
+  privileged: true
+  devices:
+    - /dev/snd:/dev/snd
+  network_mode: host
+
+# This is complicated. LRPTo == Local RePeaTer output, RRADi == Remote RADio input
+# 8 services in total handling 8 connections
+# LRPTo -> LRADi(l) && RRADi(trx)
+# RRPTo -> RRADi(l) && LRADi(trx)
+# LRADo -> LRPTi(l) && RRPTi(trx)
+# RRADo -> RRPTi(l) && LRPTi(trx)
+services:
+  lrpt-to-rradio:
+    <<: *common
+    # command: tx -d plughw:CARD=Device_1,DEV=0 -h 10.0.1.22 -c 1 -r 48000 -f 480
+    command: tx -d hubcap -h 10.0.1.22 -c 1 -r 48000 -f 480
+    labels:
+      description: Input from the local repeater, transmit to the remote radio
+  rrpt-to-lradio:
+    <<: *common
+    command: rx -d plughw:CARD=Device,DEV=0 -c 1 -r 48000 -j 60
+    labels:
+      description: Receive from the remote repeater, output to the local radio
+  lrpt-to-lradio:
+    <<: *common
+    command: alsaloop -C plughw:CARD=Device_1,DEV=0 -P plughw:CARD=Device,DEV=0
+    labels:
+      description: Input from the local repeater, output to the local radio
+  lradio-to-lrpt:
+    <<: *common
+    command: alsaloop -C plughw:CARD=Device,DEV=0 -P plughw:CARD=Device_1,DEV=0
+    labels:
+      description: Input from the local radio, output to the local repeater

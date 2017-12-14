@@ -74,6 +74,12 @@ Before removing the SD card, there's a few things to do:
 $ touch /boot/ssh
 ```
 
+##### Make some kernel commandline additions
+
+```console
+$ sudo sed -i 's/$/ cgroup_memory=1 modules-load=snd-aloop/' /boot/cmdline.txt
+```
+
 ##### Set up WiFi (optional)
 
 To auto-connect to a WiFi network, create a file `wpa_supplicant.conf` in `/boot`
