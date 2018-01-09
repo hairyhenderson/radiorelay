@@ -1,10 +1,16 @@
 version: '2.3'
 
 x-common: &common
-  image: hairyhenderson/trx:latest
+  # image: hairyhenderson/trx:arm-hubcap
+  image: hairyhenderson/trx:arm
+  restart: always
   privileged: true
+  ulimits:
+    rtprio: 25
   devices:
     - /dev/snd:/dev/snd
+  volumes:
+    - ./relay.conf:/usr/share/alsa/alsa.conf.d/relay.conf
   network_mode: host
 
 # This is complicated. LRPTo == Local RePeaTer output, RRADi == Remote RADio input
@@ -14,24 +20,67 @@ x-common: &common
 # LRADo -> LRPTi(l) && RRPTi(trx)
 # RRADo -> RRPTi(l) && LRPTi(trx)
 services:
-  lrpt-to-rradio:
-    <<: *common
-    # command: tx -d plughw:CARD=Device_1,DEV=0 -h 10.0.1.22 -c 1 -r 48000 -f 480
-    command: tx -d hubcap -h 10.0.1.22 -c 1 -r 48000 -f 480
-    labels:
-      description: Input from the local repeater, transmit to the remote radio
-  rrpt-to-lradio:
-    <<: *common
-    command: rx -d plughw:CARD=Device,DEV=0 -c 1 -r 48000 -j 60
-    labels:
-      description: Receive from the remote repeater, output to the local radio
+  # lrpt-to-rradio:
+  #   <<: *common
+  #   # command: tx -d plughw:CARD=Device_1,DEV=0 -h 10.0.1.22 -c 1 -r 48000 -f 480
+  #   command: tx -d hubcap -h 10.0.1.22 -c 1 -r 48000 -f 480
+  #   labels:
+  #     description: Input from the local repeater, transmit to the remote radio
+  # rrpt-to-lradio:
+  #   <<: *common
+  #   command: rx -d plughw:CARD=Device,DEV=0 -c 1 -r 48000 -j 60
+  #   labels:
+  #     description: Receive from the remote repeater, output to the local radio
+      # lrpt-cap:
+      #   <<: *common
+      #   command: alsaloop -vv -c 1 -C rpt -P rpt_play
+      #   labels:
+      #     description: Input from the local repeater, output to the hubcap0 device
+      # lrpt-play:
+      #   <<: *common
+      #   command: alsaloop -vv -c 1 -C rpt_cap -P rpt
+      #   labels:
+      #     description: Output to the local repeater, input from the dmixer0 device
+      # lradio-cap:
+      #   <<: *common
+      #   command: alsaloop -vv -c 1 -C rad -P rad_play
+      #   labels:
+      #     description: Input from the local radio, output to the dmixer0 device
+      # lradio-play:
+      #   <<: *common
+      #   command: alsaloop -vv -c 1 -C rad_cap -P rad
   lrpt-to-lradio:
     <<: *common
-    command: alsaloop -C plughw:CARD=Device_1,DEV=0 -P plughw:CARD=Device,DEV=0
+    # command: alsaloop -vv -C plughw:CARD=Device_1,DEV=0 -P plughw:CARD=Device,DEV=0
+    command: alsaloop -vv -C plughw:CARD=Device_1,DEV=0 -P plughw:CARD=ALSA,DEV=0
+    # command: alsaloop -vv -C rpt_cap -P rad_play
     labels:
       description: Input from the local repeater, output to the local radio
   lradio-to-lrpt:
     <<: *common
-    command: alsaloop -C plughw:CARD=Device,DEV=0 -P plughw:CARD=Device_1,DEV=0
+    command: alsaloop -vv -C plughw:CARD=Device,DEV=0 -P plughw:CARD=Device_1,DEV=0
+    # command: alsaloop -vv -C rad_cap -P rpt_play
     labels:
       description: Input from the local radio, output to the local repeater
+
+## Troubleshooting log 2017-12-31
+# audio out to radio works (with aplay to Device)
+# audio in from radio works (with arecord from Device)
+# audio out to repeater works (with aplay to Device_1)
+# audio in from repeater works (as recorded from radio, jacked to separate speakers)
+# audio in from repeater does _not_ work (as recorded from radio, and routed back to radio)
+#   -- tested both audio dongles, and both cables, no diff
+# Note: there's a "Mic" setting in alsamixer's Playback section - this should be _OFF_ so that 
+#       I don't get the input monitored back to the output! 
+#
+# direct from radio to repeater (via alligator clips) works fine, as expected, with decent levels
+
+# Plan:
+# 1. build a new hat at home for testing
+#    - try with separate PTT pins
+# 2. order QYT radio for testing 
+# 3. attempt to fix the problem!
+# 
+# - Note: will probably need to order Pi3 - tin probably not a good option for testing.
+#   Don't need same case or to modify it with jack holes
+#

@@ -1,7 +1,10 @@
+# radio relay
+
 Listing what the audio devices are on the pi:
 
-```
-aplay -l
+```console
+$ aplay -l
+...
 ```
 
 These correspond to `plughw:N,0` (where N is the index)
@@ -24,19 +27,25 @@ From the repeater's audio out, the sound must go _only_ to the radios (local and
 To hook up local repeater to local radio, we use `alsaloop`:
 
 (`plughw:2,0` is the repeater audio card, `plughw:0,0` is the radio audio card)
-```
+
+```console
 $ alsaloop -C plughw:2,0 -P plughw:0,0
 $ alsaloop -C plughw:0,0 -P plughw:2,0
+$
 ```
 
 To hook up local repeater to remote radio, we use `tx`:
-```
+
+```console
 $ tx -d plughw:2,0 -h <remote IP address> -c 1 -r 48000 -f 480
+...
 ```
 
 TO hook up remote repeater to local radio, we use `rx`:
-```
+
+```console
 $ rx -d plughw:0,0 -c 1 -r 48000 -j 60
+...
 ```
 
 ## PTT routing
@@ -44,14 +53,13 @@ $ rx -d plughw:0,0 -c 1 -r 48000 -j 60
 From the repeater's PTT out, state must be propagated to local and remote radios.
 
 2 pins: 18 (radio PTT in), 27 (repeater PTT out)
+
 - when 27 is detected active:
   - set 18 active
   - transmit PTT activate message to remote IP
 - when 27 is detected inactive:
   - set 18 inactive
   - transmit PTT deactivate message to remote IP
-
-
 
 ## Misc. stuff
 
@@ -63,21 +71,25 @@ the SD card on my mac like this:
 
 ```console
 $ sudo dd if=2017-11-29-raspbian-stretch-lite.img bs=1M of=/dev/rdisk2 conv=sync
+$
 ```
 
 Before removing the SD card, there's a few things to do:
 
 #### Pre-boot setup
+
 ##### Enable SSH
 
 ```console
 $ touch /boot/ssh
+$
 ```
 
 ##### Make some kernel commandline additions
 
 ```console
 $ sudo sed -i 's/$/ cgroup_memory=1 modules-load=snd-aloop/' /boot/cmdline.txt
+$
 ```
 
 ##### Set up WiFi (optional)

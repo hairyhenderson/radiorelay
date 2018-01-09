@@ -1,0 +1,203 @@
+pcm.rad_cap {
+	type plug
+	slave {
+		pcm "dsnoop:CARD=Device,DEV=0"
+	}
+}
+
+pcm.rpt_cap {
+	type plug
+	slave {
+		pcm "dsnoop:CARD=Device_1,DEV=0"
+	}
+}
+
+pcm.rad_play {
+	type plug
+	slave {
+		pcm "dmix:CARD=Device,DEV=0"
+	}
+}
+
+pcm.rpt_play {
+	type plug
+	slave {
+		pcm "dmix:CARD=Device_1,DEV=0"
+	}
+}
+
+# pcm.rad {
+# 	type plug
+# 	slave {
+#         pcm "plughw:CARD=Device,DEV=0"
+#         rate 48000
+# 		format S16_LE
+# 		channels 2
+#     }
+# }
+
+# pcm.rpt {
+# 	type plug
+#     slave {
+#         pcm "plughw:CARD=Device_1,DEV=0"
+#         rate 48000
+# 		format S16_LE
+# 		channels 2
+#     }
+# }
+
+
+
+# pcm.rpt_play_loop {
+# 	type plug 
+# 	slave.pcm {
+# 		type dmix
+# 		ipc_key 1604
+# 		slave {
+# 			pcm "hw:Loopback,1,0"
+# 			rate 48000
+# 			format S16_LE
+# 			channels 2
+# 			period_size 1024
+# 			buffer_size 8192
+# 		}
+# 	}
+# }
+
+# pcm.rpt_cap {
+# 	type dsnoop
+# 	ipc_key 1601
+# 	slave {
+# 		pcm "hw:Loopback,1,0"
+# 		rate 48000
+# 		format S16_LE
+# 		# channels 1
+# 	}
+# }
+
+# Repeater
+# pcm.rpt_play_loop {
+# 	type plug 
+# 	slave.pcm {
+# 		type dsnoop
+# 		ipc_key 1502
+# 		slave {
+# 			pcm "hw:Loopback,0,0"
+# 			rate 48000
+# 			format S16_LE
+# 			channels 2
+# 			period_size 1024
+# 			buffer_size 8192
+# 		}
+# 	}
+# }
+
+# pcm.rpt_play {
+# 	type plug 
+# 	# slave.pcm {
+# 	# 	type dmix
+# 	# 	ipc_key 1602
+# 	slave {
+# 		pcm "plughw:CARD=Device_1,DEV=0"
+# 		rate 48000
+# 		format S16_LE
+# 		channels 2
+# 		# period_size 1024
+# 		# buffer_size 8192
+# 	}
+# 	# }
+# }
+
+# pcm.rpt_cap_loop {
+# 	type plug
+# 	slave.pcm {
+# 		type dmix
+# 		ipc_key 1500
+# 		slave {
+# 			pcm "hw:Loopback,1,0"
+# 			rate 48000
+# 			format S16_LE
+# 			channels 2
+# 			period_size 1024
+# 			buffer_size 8192
+# 		}
+# 	}
+# }
+
+# pcm.rpt_cap {
+# 	type plug
+# 	slave.pcm {
+# 		type dsnoop
+# 		ipc_key 1503
+# 		slave {
+# 			pcm "hw:CARD=Device_1,DEV=0"
+# 			rate 48000
+# 			format S16_LE
+# 			# channels 1
+# 		}
+# 	}
+# }
+
+# # Radio
+
+# pcm.rad_play_loop {
+# 	type plug 
+# 	slave.pcm {
+# 		type dsnoop
+# 		ipc_key 1602
+# 		slave {
+# 			pcm "hw:Loopback,0,1"
+# 			rate 48000
+# 			format S16_LE
+# 			channels 2
+# 			period_size 1024
+# 			buffer_size 8192
+# 		}
+# 	}
+# }
+
+# pcm.rad_play {
+# 	type plug 
+# 	# slave.pcm {
+# 	# 	type dmix
+# 	# 	ipc_key 1602
+# 	slave {
+# 		pcm "plughw:CARD=Device,DEV=0"
+# 		rate 48000
+# 		format S16_LE
+# 		channels 2
+# 		# period_size 1024
+# 		# buffer_size 8192
+# 	}
+# 	# }
+# }
+
+# pcm.rad_cap_loop {
+# 	type plug
+# 	slave.pcm {
+# 		type dmix
+# 		ipc_key 1600
+# 		slave {
+# 			pcm "hw:Loopback,1,1"
+# 			rate 48000
+# 			format S16_LE
+# 			channels 2
+# 			period_size 1024
+# 			buffer_size 8192
+# 		}
+# 	}
+# }
+
+# pcm.rad_cap {
+# 	type plug
+# 	slave.pcm {
+# 		type dsnoop
+# 		ipc_key 1603
+# 		slave {
+# 			pcm "hw:CARD=Device,DEV=0"
+# 			rate 48000
+# 			format S16_LE
+# 			# channels 1
+# 		}
+# 	}
+# }
