@@ -1,78 +1,62 @@
 # radio relay
 
-Listing what the audio devices are on the pi:
+The setup involves two Computers (Raspberry Pi 3), two Repeaters (Argent
+Data ADS-SR1), and two Radios (QYT KT-8900D). And a bunch of wiring...
 
-```console
-$ aplay -l
-...
+## Overview
+
+Each side is identical:
+
+```
+   +----------+
+/->| Repeater |
+|  +----------+ +-------+
+P     |   ^-----|   Pi  |
+T     |         |       |
+T     v         +-------+
+|  +-------+         ^
+\->| Radio |--------/
+   +-------+
 ```
 
-These correspond to `plughw:N,0` (where N is the index)
+We take advantage of the UGreen USB Audio device's monitoring mode - this means
+that all output from the Radio (on the Pi's USB Mic jack) will be routed back
+to the Pi's USB Speaker jack, which is connected to the Repeater's Mic input.
 
-on the card where the radio is plugged in:
+To connect each side, we use [trx](http://www.pogo.org.uk/~mark/trx/). This
+effectively multiplexes the Radio's output to the Repeater and the remote Pi.
 
-## Legend
-
-- A: local radio's audio out (to sound card 1's red/mic jack)
-- B: local repeater's audio out (to sound card 2's red/mic jack)
-
-- C: remote radio's audio out (to sound card 1's red/mic jack)
-- D: remote repeater's audio out (to sound card 2's red/mic jack)
-
-## Audio routing
-
-From the radio's audio out, the sound must go _only_ to the repeaters (local and remote)
-From the repeater's audio out, the sound must go _only_ to the radios (local and remote)
-
-To hook up local repeater to local radio, we use `alsaloop`:
-
-(`plughw:2,0` is the repeater audio card, `plughw:0,0` is the radio audio card)
-
-```console
-$ alsaloop -C plughw:2,0 -P plughw:0,0
-$ alsaloop -C plughw:0,0 -P plughw:2,0
-$
+```
++-----------+         +-----------+
+|      tx ->|---UDP---|-> rx      |
+| Pi 1      |         |      Pi 2 |
+|      rx <-|---UDP---|<- tx      |
++-----------+         +-----------+
 ```
 
-To hook up local repeater to remote radio, we use `tx`:
+These audio channels are constantly connected, and simply act as a UDP-based
+duplex relay between the two Pis.
 
-```console
-$ tx -d plughw:2,0 -h <remote IP address> -c 1 -r 48000 -f 480
-...
-```
+## Software setup
 
-TO hook up remote repeater to local radio, we use `rx`:
+The software is fairly basic, and intended to be easily reproducible, using
+Docker to simplify distribution and installation.
 
-```console
-$ rx -d plughw:0,0 -c 1 -r 48000 -j 60
-...
-```
-
-## PTT routing
-
-From the repeater's PTT out, state must be propagated to local and remote radios.
-
-2 pins: 18 (radio PTT in), 27 (repeater PTT out)
-
-- when 27 is detected active:
-  - set 18 active
-  - transmit PTT activate message to remote IP
-- when 27 is detected inactive:
-  - set 18 inactive
-  - transmit PTT deactivate message to remote IP
-
-## Misc. stuff
+This is all based on Raspbian Linux (Debian customized for Raspberry Pi),
+with Docker CE (Community Edition) and Docker Compose installed.
 
 ### OS setup
 
 The SD card is burned from `2017-11-29-raspbian-stretch-lite.img`, downloaded
 from [here](https://downloads.raspberrypi.org/raspbian_lite_latest). I wrote
-the SD card on my mac like this:
+the SD card from my mac like this:
 
 ```console
 $ sudo dd if=2017-11-29-raspbian-stretch-lite.img bs=1M of=/dev/rdisk2 conv=sync
 $
 ```
+
+To run from Linux the device name (for `of=`) will need to change.
 
 Before removing the SD card, there's a few things to do:
 
@@ -82,13 +66,6 @@ Before removing the SD card, there's a few things to do:
 
 ```console
 $ touch /boot/ssh
-$
-```
-
-##### Make some kernel commandline additions
-
-```console
-$ sudo sed -i 's/$/ cgroup_memory=1 modules-load=snd-aloop/' /boot/cmdline.txt
 $
 ```
 
@@ -131,7 +108,8 @@ $ ssh pi@raspberrypi.local
 ...
 ```
 
-_Also handy is to run `ssh-copy-id`, but that's out of scope._
+_Also handy is to copy over your SSH public key with `ssh-copy-id`, but that's_
+_an exercise left to the reader._
 
 ##### Set the hostname
 
@@ -149,15 +127,16 @@ $ sudo sed -i "s/raspberrypi/$HOSTNAME/" /etc/hosts
 A bunch of packages/keys are necessary/useful to bootstrap things:
 
 ```console
-$ sudo apt-get update && sudo apt-get install avahi-daemon docker-ce git
-...
+$ cat <<EOF > /etc/apt/sources.list.d/docker.list
+deb [arch=armhf] https://download.docker.com/linux/raspbian/ stretch stable
+EOF
 $ curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | sudo apt-key add -
+...
+$ sudo apt-get update && sudo apt-get install avahi-daemon docker-ce git
 ...
 ```
 
 ##### Installing docker-compose
-
-This helps run things!
 
 ```console
 $ docker create --name compose hairyhenderson/docker-compose:1.17.1-armhf
@@ -166,4 +145,113 @@ $ sudo docker cp compose:/docker-compose /usr/local/bin/docker-compose
 $ docker rm compose
 $ docker-compose -v
 docker-compose version 1.17.1, build a9597d7
+```
+
+### Configuration
+
+#### Audio levels
+
+To set the audio levels, use `alsamixer` to get the values right. Trial-and-error
+is really the only option here, though a speaker level of ~86 seems reasonable.
+Bear in mind that `alsamixer` starts in Playback view by default, and the view
+should be changed to "All" view with the `F5` key (or you can start with
+`alsamixer -V=all`).
+
+Notes:
+- Mic should be unmuted
+  - the bottom of the Mic column should read `OO`, not `MM`
+- Mic Capture (the second Mic column) should be enabled
+  - hit `<Space>` until `CAPTURE` is displayed at the bottom of the second Mic column
+- exit and save with `<Esc>`
+
+Once audio levels are OK, save them:
+
+```console
+$ sudo alsactl store
+$
+```
+
+This will store the level configuration in `/var/lib/alsa/asound.state`, and
+should be restored on boot.
+
+#### trx
+
+`tx` and `rx` are run in Docker containers, using Docker Compose. They're
+managed with the `docker-compose` command, and configured with a file named
+`docker-compose.yml`, which lives in `/home/pi`.
+
+To start the services you can do (from `pi`'s home directory):
+
+```console
+$ docker-compose up -d
+```
+
+To tail (follow) the command outputs:
+
+```console
+$ docker-compose logs -f
+```
+
+To stop services:
+
+```console
+$ docker-compose down
+```
+
+##### The `docker-compose.yml` file
+
+```yaml
+version: '2.3'
+
+x-common: &common
+  image: hairyhenderson/trx:arm
+  restart: always
+  privileged: true
+  ulimits:
+    rtprio: 25
+  devices:
+    - /dev/snd:/dev/snd
+  network_mode: host
+
+services:
+  tx:
+    <<: *common
+    command: tx -d plughw:CARD=Device,DEV=0 -h 10.0.1.22 -c 1 -r 48000 -f 480
+    labels:
+      description: Input from the local radio, transmit to the remote repeater
+  rx:
+    <<: *common
+    command: rx -d plughw:CARD=Device,DEV=0 -c 1 -r 48000 -j 60
+    labels:
+      description: Receive from the remote radio, output to the local repeater
+```
+
+Write this file (modifying the IP address in the `tx` command) to `/home/pi/docker-compose.yml`.
+Whitespace is significant!
+
+##### Starting on boot
+
+After the Pi boots, it'll run `docker-compose up -d` automatically, so no interaction
+should be necessary. To accomplish this, we configure a SystemD unit (as root!):
+
+```console
+$ cat <<EOF | sudo tee /etc/systemd/system/trx.service >/dev/null
+[Unit]
+Description=trx services
+After=network.target docker.socket
+Requires=docker.socket
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/pi
+ExecStart=/usr/local/bin/docker-compose up -d
+ExecStop=/usr/local/bin/docker-compose down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+$ systemctl enable trx.service
+$ systemctl daemon-reload
 ```
