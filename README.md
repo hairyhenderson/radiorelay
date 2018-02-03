@@ -252,6 +252,6 @@ TimeoutStartSec=0
 [Install]
 WantedBy=multi-user.target
 EOF
-$ systemctl enable trx.service
-$ systemctl daemon-reload
+$ sudo systemctl enable trx.service
+$ sudo systemctl daemon-reload
 ```
