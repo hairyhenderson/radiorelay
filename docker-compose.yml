@@ -11,12 +11,12 @@ x-common: &common
   network_mode: host
 
 services:
-  lrad-to-rrpt:
+  tx:
     <<: *common
     command: tx -d plughw:CARD=Device,DEV=0 -h 10.0.1.75 -c 1 -r 48000 -f 480
     labels:
       description: Input from the local radio, transmit to the remote repeater
-  rrad-to-lrpt:
+  rx:
     <<: *common
     command: rx -d plughw:CARD=Device,DEV=0 -c 1 -r 48000 -j 60
     labels:
