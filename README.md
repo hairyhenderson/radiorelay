@@ -9,7 +9,7 @@ Each side is identical:
 
 ```
    +----------+
-/->| Repeater |
+/--| Repeater |
 |  +----------+ +-------+
 P     |   ^-----|   Pi  |
 T     |         |       |
